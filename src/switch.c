@@ -474,11 +474,13 @@ static switch_bool_t is_option(const char *p)
 	return (p[0] == '-');
 }
 
-
+/* 主程序启动入口 */
 /* the main application entry point */
 int main(int argc, char *argv[])
 {
+	/* freeswitch.pid 文件路径 */
 	char pid_path[PATH_MAX] = "";	/* full path to the pid file */
+	/* 应用启动进程的PID值 */
 	char pid_buffer[32] = "";	/* pid string */
 	char old_pid_buffer[32] = { 0 };	/* pid string */
 	switch_size_t pid_len, old_pid_len;
@@ -519,18 +521,23 @@ int main(int argc, char *argv[])
 #endif
 #endif
 
+	/* local_argv数组中添加应用启动所携带的参数, 如: -nc -nonat等 */
 	for (x = 0; x < argc; x++) {
 		local_argv[x] = argv[x];
 	}
 
+	/* local_argv数组中追加环境变量中变量名为FREESWITCH_OPTS所携带的参数, 如: -nc -nonat等 */
 	if ((opts = getenv("FREESWITCH_OPTS"))) {
+		/* strncpy : 字符串复制(标准库函数) */
 		strncpy(opts_str, opts, sizeof(opts_str) - 1);
+		/* 字符串按照空格切分 */
 		i = switch_separate_string(opts_str, ' ', arg_argv, (sizeof(arg_argv) / sizeof(arg_argv[0])));
 		for (x = 0; x < i; x++) {
 			local_argv[local_argc++] = arg_argv[x];
 		}
 	}
 
+	/* strstr : 字符串查找, 返回索引下标(标准库函数) */
 	if (local_argv[0] && strstr(local_argv[0], "freeswitchd")) {
 		nc = SWITCH_TRUE;
 	}
@@ -545,9 +552,11 @@ int main(int argc, char *argv[])
 			exit(EXIT_SUCCESS);
 		}
 #ifdef WIN32
+		/* strcmp : 字符串比较, 返回值: < 0、 0 、 > 0 (标准库函数) */
 		if (x == 1 && !strcmp(local_argv[x], "-service")) {
 			/* New installs will always have the service name specified, but keep a default for compat */
 			x++;
+			/* switch_copy_string : 字符串复制 */
 			if (!switch_strlen_zero(local_argv[x])) {
 				switch_copy_string(service_name, local_argv[x], SERVICENAME_MAXLEN);
 			} else {
@@ -558,6 +567,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
+		/* Windows系统下, 应用安装到服务中 */
 		else if (x == 1 && !strcmp(local_argv[x], "-install")) {
 			char servicePath[PATH_MAX];
 			char exePath[PATH_MAX];
@@ -574,6 +584,7 @@ int main(int argc, char *argv[])
 			}
 
 			GetModuleFileName(NULL, exePath, sizeof(exePath));
+			/* snprintf : 字符串格式化 (标准库函数) */
 			snprintf(servicePath, sizeof(servicePath), "%s -service %s", exePath, service_name);
 
 			/* Perform service installation */
@@ -602,6 +613,7 @@ int main(int argc, char *argv[])
 			exit(EXIT_SUCCESS);
 		}
 
+		/* Windows系统下, 应用从服务中卸载 */
 		else if (x == 1 && !strcmp(local_argv[x], "-uninstall")) {
 			SC_HANDLE hService;
 			SC_HANDLE hSCManager;
@@ -639,10 +651,12 @@ int main(int argc, char *argv[])
 			exit(deleted ? EXIT_SUCCESS : EXIT_FAILURE);
 		}
 
+		/* 时间的类型 : 从系统启动这一刻起开始计时,不受系统时间被用户改变的影响  CLOCK_REALTIME/CLOCK_MONOTONIC/CLOCK_PROCESS_CPUTIME_ID/CLOCK_THREAD_CPUTIME_ID */
 		else if (!strcmp(local_argv[x], "-monotonic-clock")) {
 			flags |= SCF_USE_WIN32_MONOTONIC;
 		}
 #else
+		/* 该应用运行再指定用户下 */
 		else if (!strcmp(local_argv[x], "-u")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -652,6 +666,7 @@ int main(int argc, char *argv[])
 			runas_user = local_argv[x];
 		}
 
+		/* 该应用运行再指定用户群组下 */
 		else if (!strcmp(local_argv[x], "-g")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -661,24 +676,29 @@ int main(int argc, char *argv[])
 			runas_group = local_argv[x];
 		}
 
+		/* 不允许Fork新进程 */
 		else if (!strcmp(local_argv[x], "-nf")) {
 			nf = SWITCH_TRUE;
 		}
 
+		/* TODO */
 		else if (!strcmp(local_argv[x], "-reincarnate")) {
 			reincarnate = SWITCH_TRUE;
 		}
+		/* TODO */
 		else if (!strcmp(local_argv[x], "-reincarnate-reexec")) {
 			reincarnate = SWITCH_TRUE;
 			reincarnate_reexec = SWITCH_TRUE;
 		}
 
+		/* 版本号输出 */
 		else if (!strcmp(local_argv[x], "-version")) {
 			fprintf(stdout, "FreeSWITCH version: %s (%s)\n", switch_version_full(), switch_version_revision_human());
 			exit(EXIT_SUCCESS);
 		}
 #endif
 #ifdef HAVE_SETRLIMIT
+		/* 出错时进行内核转存 */
 		else if (!strcmp(local_argv[x], "-core")) {
 			struct rlimit rlp;
 			memset(&rlp, 0, sizeof(rlp));
@@ -687,6 +707,7 @@ int main(int argc, char *argv[])
 			setrlimit(RLIMIT_CORE, &rlp);
 		}
 
+		/* 允许浪费内存地址空间 - 仅针对64操作系统 */
 		else if (!strcmp(local_argv[x], "-waste")) {
 #ifndef FS_64BIT
 			fprintf(stderr, "WARNING: Wasting up to 8 megs of memory per thread.\n");
@@ -695,69 +716,86 @@ int main(int argc, char *argv[])
 #endif
 		}
 
+		/* TODO - 仅针对64操作系统 */
 		else if (!strcmp(local_argv[x], "-no-auto-stack")) {
 #ifndef FS_64BIT
 			waste = SWITCH_TRUE;
 #endif
 		}
 #endif
+		/* 开启进程高优先级设置（实时）- 默认 */
 		else if (!strcmp(local_argv[x], "-hp") || !strcmp(local_argv[x], "-rp")) {
 			priority = 2;
 		}
 
+		/* 开启进程低优先级设置 */
 		else if (!strcmp(local_argv[x], "-lp")) {
 			priority = -1;
 		}
 
+		/* 进程普通优先级设置 */
 		else if (!strcmp(local_argv[x], "-np")) {
 			priority = 1;
 		}
 
+		/* 不使用SQL, show calls/channels命令无结果显示 */
 		else if (!strcmp(local_argv[x], "-nosql")) {
 			flags &= ~SCF_USE_SQL;
 		}
 
+		/* 禁用NAT检查过程, 有些路由器支持uPnp/NAT-PMP */
 		else if (!strcmp(local_argv[x], "-nonat")) {
 			flags &= ~SCF_USE_AUTO_NAT;
 		}
 
+		/* TODO */
 		else if (!strcmp(local_argv[x], "-nonatmap")) {
 			flags &= ~SCF_USE_NAT_MAPPING;
 		}
 
+		/* 更精确的时钟, 对系统要求比较高 */
 		else if (!strcmp(local_argv[x], "-heavy-timer")) {
 			flags |= SCF_USE_HEAVY_TIMING;
 		}
 
+		/* 关闭实时时钟 */
 		else if (!strcmp(local_argv[x], "-nort")) {
 			flags &= ~SCF_USE_CLOCK_RT;
 		}
 
+		/* 关闭实时核准 */
 		else if (!strcmp(local_argv[x], "-nocal")) {
 			flags &= ~SCF_CALIBRATE_CLOCK;
 		}
 
+		/* TODO */
 		else if (!strcmp(local_argv[x], "-vg")) {
 			flags |= SCF_VG;
 		}
 
+		/* 停止服务, 在run目录下找到对应的PID */
 		else if (!strcmp(local_argv[x], "-stop")) {
 			do_kill = SWITCH_TRUE;
 		}
 
+		/* 后台启动模式, 没有控制台 */
 		else if (!strcmp(local_argv[x], "-nc")) {
 			nc = SWITCH_TRUE;
 		}
 #ifndef WIN32
+		/* 后台启动, 待系统完全启动完成后退出父进程 - Windows适用 */
 		else if (!strcmp(local_argv[x], "-ncwait")) {
 			nc = SWITCH_TRUE;
 			do_wait = SWITCH_TRUE;
 		}
 #endif
+		/* 控制台启动, 默认 */
 		else if (!strcmp(local_argv[x], "-c")) {
 			nc = SWITCH_FALSE;
 		}
 
+		/* SWITCH_GLOBAL_dirs : switch_core.c 中定义, switch_directories 数据结构 */
+		/* 指定配置目录 */
 		else if (!strcmp(local_argv[x], "-conf")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -774,6 +812,7 @@ int main(int argc, char *argv[])
 			alt_dirs++;
 		}
 
+		/* 指定模块目录 */
 		else if (!strcmp(local_argv[x], "-mod")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -789,6 +828,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.mod_dir, local_argv[x]);
 		}
 
+		/* 指定日志目录 */
 		else if (!strcmp(local_argv[x], "-log")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -806,6 +846,7 @@ int main(int argc, char *argv[])
 			log_set = SWITCH_TRUE;
 		}
 
+		/* 指定运行目录, 存放PID文件 */
 		else if (!strcmp(local_argv[x], "-run")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -822,6 +863,7 @@ int main(int argc, char *argv[])
 			run_set = SWITCH_TRUE;
 		}
 
+		/* 指定数据库目录, SQLITE */
 		else if (!strcmp(local_argv[x], "-db")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -838,6 +880,7 @@ int main(int argc, char *argv[])
 			alt_dirs++;
 		}
 
+		/* 指定脚本目录 */
 		else if (!strcmp(local_argv[x], "-scripts")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -853,6 +896,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.script_dir, local_argv[x]);
 		}
 
+		/* 指定文档目录, 如: /usr/local/freeswitch/htdocs */
 		else if (!strcmp(local_argv[x], "-htdocs")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -868,6 +912,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.htdocs_dir, local_argv[x]);
 		}
 
+		/* 指定基准目录, 如: /usr/local/freeswitch */
 		else if (!strcmp(local_argv[x], "-base")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -884,6 +929,7 @@ int main(int argc, char *argv[])
 			alt_base = 1;
 		}
 
+		/* 指定临时目录, 如: /usr/local/freeswitch/temp */
 		else if (!strcmp(local_argv[x], "-temp")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -899,6 +945,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.temp_dir, local_argv[x]);
 		}
 
+		/* 指定存储目录 */
 		else if (!strcmp(local_argv[x], "-storage")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -914,6 +961,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.storage_dir, local_argv[x]);
 		}
 
+		/* 指定缓存目录 */
 		else if (!strcmp(local_argv[x], "-cache")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -929,6 +977,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.cache_dir, local_argv[x]);
 		}
 
+		/* 指定录音目录 */
 		else if (!strcmp(local_argv[x], "-recordings")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -944,6 +993,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.recordings_dir, local_argv[x]);
 		}
 
+		/* 指定语法目录 */
 		else if (!strcmp(local_argv[x], "-grammar")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -959,6 +1009,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.grammar_dir, local_argv[x]);
 		}
 
+		/* 指定证书目录 */
 		else if (!strcmp(local_argv[x], "-certs")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -974,6 +1025,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.certs_dir, local_argv[x]);
 		}
 
+		/* 指定音频目录 */
 		else if (!strcmp(local_argv[x], "-sounds")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -989,6 +1041,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.sounds_dir, local_argv[x]);
 		}
 
+		/* TODO */
 		else if (!strcmp(local_argv[x], "-cfgname")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {
@@ -1025,11 +1078,13 @@ int main(int argc, char *argv[])
 		return freeswitch_kill_background();
 	}
 
+	/* APR跨平台组件初始化检查 */
 	if (apr_initialize() != SWITCH_STATUS_SUCCESS) {
 		fprintf(stderr, "FATAL ERROR! Could not initialize APR\n");
 		return 255;
 	}
 
+	/* -conf, -log, -db 三个选项必须要在一起使用 */
 	if (alt_dirs && alt_dirs != 3 && !alt_base) {
 		fprintf(stderr, "You must specify all or none of -conf, -log, and -db\n");
 		return 255;
@@ -1095,19 +1150,24 @@ int main(int argc, char *argv[])
 	
 	switch (priority) {
 	case 2:
+		/* switch_core.c */
 		set_realtime_priority();
 		break;
 	case 1:
+		/* switch_core.c */
 		set_normal_priority();
 		break;
 	case -1:
+		/* switch_core.c */
 		set_low_priority();
 		break;
 	default:
+		/* switch_core.c */
 		set_auto_priority();
 		break;
 	}
 	
+	/* switch_core.c */
 	switch_core_setrlimits();
 
 
@@ -1139,8 +1199,10 @@ int main(int argc, char *argv[])
 	}
 #endif
 
+	/* 设置全局缺省默认设置, 函数在 switch_core.c */
 	switch_core_set_globals();
 
+	/* 获取当前进程PID值 */
 	pid = getpid();
 
 	memset(pid_buffer, 0, sizeof(pid_buffer));
@@ -1150,8 +1212,10 @@ int main(int argc, char *argv[])
 
 	apr_pool_create(&pool, NULL);
 
+	/* 创建run目录(递归) - APR库提供 apr_dir_make_recursive */
 	switch_dir_make_recursive(SWITCH_GLOBAL_dirs.run_dir, SWITCH_DEFAULT_DIR_PERMS, pool);
 
+	/* 尝试读取PID文件中的PID值, 即 old_pid */
 	if (switch_file_open(&fd, pid_path, SWITCH_FOPEN_READ, SWITCH_FPROT_UREAD | SWITCH_FPROT_UWRITE, pool) == SWITCH_STATUS_SUCCESS) {
 
 		old_pid_len = sizeof(old_pid_buffer) -1;
@@ -1159,6 +1223,7 @@ int main(int argc, char *argv[])
 		switch_file_close(fd);
 	}
 
+	/* TODO */
 	if (switch_file_open(&fd,
 						 pid_path,
 						 SWITCH_FOPEN_WRITE | SWITCH_FOPEN_CREATE | SWITCH_FOPEN_TRUNCATE,
@@ -1167,6 +1232,7 @@ int main(int argc, char *argv[])
 		return 255;
 	}
 
+	/* 应用已启动, PID文件锁失败, 如: Cannot lock pid file /usr/local/freeswitch/run/freeswitch.pid. */
 	if (switch_file_lock(fd, SWITCH_FLOCK_EXCLUSIVE | SWITCH_FLOCK_NONBLOCK) != SWITCH_STATUS_SUCCESS) {
 		fprintf(stderr, "Cannot lock pid file %s.\n", pid_path);
 		old_pid_len = strlen(old_pid_buffer);
@@ -1176,8 +1242,10 @@ int main(int argc, char *argv[])
 		return 255;
 	}
 
+	/* 写入当前进程PID值 */
 	switch_file_write(fd, pid_buffer, &pid_len);
 
+	/* switch core 初始化并加载模块, 在switch_core.c中实现 */
 	if (switch_core_init_and_modload(flags, nc ? SWITCH_FALSE : SWITCH_TRUE, &err) != SWITCH_STATUS_SUCCESS) {
 		fprintf(stderr, "Cannot Initialize [%s]\n", err);
 		return 255;
@@ -1205,8 +1273,10 @@ int main(int argc, char *argv[])
 		signal(SIGINT, handle_SIGILL);
 	}
 
+	/* 运行阶段-循环等待，在switch_core.c中实现 */
 	switch_core_runtime_loop(nc);
 
+	/* 进程主动停止 */
 	destroy_status = switch_core_destroy();
 
 	switch_file_close(fd);
@@ -1216,10 +1286,12 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Failed to delete pid file [%s]\n", pid_path);
 	}
 
+	/* 进程重启 */
 	if (destroy_status == SWITCH_STATUS_RESTART) {
 		char buf[1024] = { 0 };
 		int j = 0;
 
+		/* sleep 1秒 */
 		switch_sleep(1000000);
 		if (!argv || execv(argv[0], argv) == -1) {
 			fprintf(stderr, "Restart Failed [%s] resorting to plan b\n", strerror(errno));

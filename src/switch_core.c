@@ -619,6 +619,9 @@ SWITCH_DECLARE(switch_thread_t *) switch_core_launch_thread(switch_thread_start_
 	return thread;
 }
 
+/*
+ *
+ */
 SWITCH_DECLARE(void) switch_core_set_globals(void)
 {
 #define BUFSIZE 1024
@@ -1179,19 +1182,23 @@ SWITCH_DECLARE(void) switch_core_runtime_loop(int bg)
 	HANDLE shutdown_event;
 	char path[256] = "";
 #endif
+	/* 是否时后台运行 */
 	if (bg) {
 #ifdef WIN32
 		switch_snprintf(path, sizeof(path), "Global\\Freeswitch.%d", getpid());
 		shutdown_event = CreateEvent(NULL, FALSE, FALSE, path);
 		if (shutdown_event) {
+			// 等待服务停止信号
 			WaitForSingleObject(shutdown_event, INFINITE);
 		}
 #else
+		/* 1秒钟检测一次当前是否运行中 */
 		while (runtime.running) {
 			switch_yield(1000000);
 		}
 #endif
 	} else {
+		/* 控制台输入循环 */
 		/* wait for console input */
 		switch_console_loop();
 	}
@@ -1816,6 +1823,7 @@ SWITCH_DECLARE(switch_status_t) switch_core_init(switch_core_flag_t flags, switc
 	struct in_addr in;
 
 
+	/* 防止被初始化多次 */
 	if (runtime.runlevel > 0) {
 		/* one per customer */
 		return SWITCH_STATUS_SUCCESS;
@@ -2382,11 +2390,12 @@ SWITCH_DECLARE(switch_status_t) switch_core_init_and_modload(switch_core_flag_t 
 	const char *use = NULL;
 #include "cc.h"
 
-
+	/* 初始化 */
 	if (switch_core_init(flags, console, err) != SWITCH_STATUS_SUCCESS) {
 		return SWITCH_STATUS_GENERR;
 	}
-	
+
+	/* 防止被初始化多次 */
 	if (runtime.runlevel > 1) {
 		/* one per customer */
 		return SWITCH_STATUS_SUCCESS;
