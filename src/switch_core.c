@@ -1192,14 +1192,14 @@ SWITCH_DECLARE(void) switch_core_runtime_loop(int bg)
 			WaitForSingleObject(shutdown_event, INFINITE);
 		}
 #else
-		/* 1秒钟检测一次当前是否运行中 */
+		/* ⽆限循环 1秒钟检测一次当前是否运行中 */
 		while (runtime.running) {
 			switch_yield(1000000);
 		}
 #endif
 	} else {
 		/* 控制台输入循环 */
-		/* wait for console input */
+		/* switch_console.c : wait for console input */
 		switch_console_loop();
 	}
 }

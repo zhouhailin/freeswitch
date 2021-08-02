@@ -88,7 +88,9 @@ struct switch_loadable_module_container {
 	switch_hash_t *management_hash;
 	switch_hash_t *limit_hash;
 	switch_hash_t *secondary_recover_hash;
+	/* 互斥 : 防⽌多线程访问 */
 	switch_mutex_t *mutex;
+	/* 内存池 */
 	switch_memory_pool_t *pool;
 };
 
@@ -109,6 +111,7 @@ static void *SWITCH_THREAD_FUNC switch_loadable_module_exec(switch_thread_t *thr
 	switch_assert(thread != NULL);
 	switch_assert(module != NULL);
 
+	/* 循环的执⾏, 即只要runtime函数不返回 SWITCH_STATUS_TERM, 则它就会被再次执⾏，直到该模块被卸载为⽌ */
 	for (restarts = 0; status != SWITCH_STATUS_TERM && !module->shutting_down; restarts++) {
 		status = module->switch_module_runtime();
 	}
@@ -137,6 +140,7 @@ static void switch_loadable_module_runtime(void)
 
 		if (module->switch_module_runtime) {
 			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CONSOLE, "Starting runtime thread for %s\n", module->module_interface->module_name);
+			/* 创建新线程: 模块执行逻辑 */
 			module->thread = switch_core_launch_thread(switch_loadable_module_exec, module, loadable_modules.pool);
 		}
 	}
@@ -581,6 +585,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 将锁定的临界区的资源解锁 */
 	switch_mutex_unlock(loadable_modules.mutex);
 	return SWITCH_STATUS_SUCCESS;
 
@@ -1424,6 +1429,7 @@ static switch_status_t switch_loadable_module_load_file(char *path, char *filena
 	struct_name = switch_core_sprintf(pool, "%s_module_interface", filename);
 
 #ifdef WIN32
+	/* 使⽤ LoadLibraryEx 来打开相应的 .dll 库 */
 	dso = switch_dso_open("FreeSwitch.dll", load_global, &derr);
 #elif defined (MACOSX) || defined(DARWIN)
 	{
@@ -1432,6 +1438,7 @@ static switch_status_t switch_loadable_module_load_file(char *path, char *filena
 		switch_safe_free(lib_path);
 	}
 #else
+	/* 打开相应的模块的动态链接库 */
 	dso = switch_dso_open(NULL, load_global, &derr);
 #endif
 	if (!derr && dso) {
@@ -1587,11 +1594,13 @@ static switch_status_t switch_loadable_module_load_module_ex(char *dir, char *fn
 		switch_snprintf(path, len, "%s%s%s%s", dir, SWITCH_PATH_SEPARATOR, file, ext);
 	}
 
-
+	/* 哈希表判断该模块是否已被加载 */
 	if (switch_core_hash_find_locked(loadable_modules.module_hash, file, loadable_modules.mutex)) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Module %s Already Loaded!\n", file);
 		*err = "Module already loaded";
 		status = SWITCH_STATUS_FALSE;
+
+	/* 该模块加载到内存 */
 	} else if ((status = switch_loadable_module_load_file(path, file, global, &new_module)) == SWITCH_STATUS_SUCCESS) {
 		if ((status = switch_loadable_module_process(file, new_module)) == SWITCH_STATUS_SUCCESS && runtime) {
 			if (new_module->switch_module_runtime) {
@@ -1820,6 +1829,7 @@ static void switch_loadable_module_path_init()
 }
 #endif
 
+/* 模块的初始化 */
 SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autoload)
 {
 
@@ -1835,17 +1845,22 @@ SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autolo
 
 
 #ifdef WIN32
+	/* Windows */
 	const char *ext = ".dll";
 	const char *EXT = ".DLL";
 #elif defined (MACOSX) || defined (DARWIN)
+	/* Mac */
 	const char *ext = ".dylib";
 	const char *EXT = ".DYLIB";
 #else
+	/* UNIX */
 	const char *ext = ".so";
 	const char *EXT = ".SO";
 #endif
 
+	/* 初始化了⼀个结构体变量 loadable_modules : 可加载模块的容器*/
 	memset(&loadable_modules, 0, sizeof(loadable_modules));
+	/* 初始化了这个内存池 */
 	switch_core_new_memory_pool(&loadable_modules.pool);
 
 
@@ -1884,11 +1899,13 @@ SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autolo
 #endif
 #endif
 
+	/* 打开XML配置⽂件 : conf/autoload_configs/modules.conf.xml */
 	if ((xml = switch_xml_open_cfg(cf, &cfg, NULL))) {
 		switch_xml_t mods, ld;
 		if ((mods = switch_xml_child(cfg, "modules"))) {
 			for (ld = switch_xml_child(mods, "load"); ld; ld = ld->next) {
 				switch_bool_t global = SWITCH_FALSE;
+				/* <load module="mod_logfile"/> 模块名称, 如: mod_logfile */
 				const char *val = switch_xml_attr_soft(ld, "module");
 				const char *path = switch_xml_attr_soft(ld, "path");
 				const char *critical = switch_xml_attr_soft(ld, "critical");
@@ -1902,6 +1919,7 @@ SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autolo
 				if (path && zstr(path)) {
 					path = SWITCH_GLOBAL_dirs.mod_dir;
 				}
+				/* 模块加载 */
 				if (switch_loadable_module_load_module_ex((char *) path, (char *) val, SWITCH_FALSE, global, &err) == SWITCH_STATUS_GENERR) {
 					if (critical && switch_true(critical)) {
 						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT, "Failed to load critical module '%s', abort()\n", val);
@@ -1917,6 +1935,7 @@ SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autolo
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CONSOLE, "open of %s failed\n", cf);
 	}
 
+	/* 打开XML配置⽂件 : conf/autoload_configs/post_load_modules.conf.xml */
 	if ((xml = switch_xml_open_cfg(pcf, &cfg, NULL))) {
 		switch_xml_t mods, ld;
 
@@ -1980,6 +1999,7 @@ SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autolo
 		apr_dir_close(module_dir_handle);
 	}
 
+	/* 模块运行阶段 */
 	switch_loadable_module_runtime();
 
 	memset(&chat_globals, 0, sizeof(chat_globals));

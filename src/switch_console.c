@@ -1176,6 +1176,7 @@ SWITCH_DECLARE(void) switch_console_loop(void)
 	switch_threadattr_create(&thd_attr, pool);
 	switch_threadattr_detach_set(thd_attr, 1);
 	switch_threadattr_stacksize_set(thd_attr, SWITCH_THREAD_STACKSIZE);
+	/* 启动了⼀个新线程执⾏console_thread 函数 */
 	switch_thread_create(&thread, thd_attr, console_thread, pool, pool);
 
 	while (running) {
@@ -1184,6 +1185,7 @@ SWITCH_DECLARE(void) switch_console_loop(void)
 		if (!arg) {
 			break;
 		}
+		/* sleep 1 秒 */
 		switch_yield(1000000);
 	}
 
