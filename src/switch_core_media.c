@@ -11299,6 +11299,7 @@ SWITCH_DECLARE (void) switch_core_media_recover_session(switch_core_session_t *s
 
 SWITCH_DECLARE(void) switch_core_media_init(void)
 {
+	/* 文件不存在，则会自动生成 */
 	switch_core_gen_certs(DTLS_SRTP_FNAME ".pem");	
 
 	video_globals.cpu_count = switch_core_cpu_count();

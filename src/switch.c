@@ -1041,7 +1041,7 @@ int main(int argc, char *argv[])
 			strcpy(SWITCH_GLOBAL_dirs.sounds_dir, local_argv[x]);
 		}
 
-		/* TODO */
+		/* 指定fs加载配置文件, 默认 : conf/freeswitch.xml */
 		else if (!strcmp(local_argv[x], "-cfgname")) {
 			x++;
 			if (switch_strlen_zero(local_argv[x]) || is_option(local_argv[x])) {

@@ -147,6 +147,7 @@ static void switch_loadable_module_runtime(void)
 	switch_mutex_unlock(loadable_modules.mutex);
 }
 
+/* 将相应的模块分类加载到对应的hash表中，并产生相关的事件 */
 static switch_status_t switch_loadable_module_process(char *key, switch_loadable_module_t *new_module)
 {
 	switch_event_t *event;
@@ -177,6 +178,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 codec 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->codec_interface) {
 		const switch_codec_implementation_t *impl;
 		const switch_codec_interface_t *ptr;
@@ -244,6 +246,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 dialplan 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->dialplan_interface) {
 		const switch_dialplan_interface_t *ptr;
 
@@ -265,6 +268,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 timer 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->timer_interface) {
 		const switch_timer_interface_t *ptr;
 
@@ -286,6 +290,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 application 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->application_interface) {
 		const switch_application_interface_t *ptr;
 
@@ -309,6 +314,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 chat_application 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->chat_application_interface) {
 		const switch_chat_application_interface_t *ptr;
 
@@ -332,6 +338,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 api 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->api_interface) {
 		const switch_api_interface_t *ptr;
 
@@ -355,6 +362,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 json_api 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->json_api_interface) {
 		const switch_json_api_interface_t *ptr;
 
@@ -378,6 +386,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 file 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->file_interface) {
 		const switch_file_interface_t *ptr;
 
@@ -414,6 +423,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 speech 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->speech_interface) {
 		const switch_speech_interface_t *ptr;
 
@@ -435,6 +445,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 asr 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->asr_interface) {
 		const switch_asr_interface_t *ptr;
 
@@ -456,6 +467,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 directory 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->directory_interface) {
 		const switch_directory_interface_t *ptr;
 
@@ -477,6 +489,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 chat 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->chat_interface) {
 		const switch_chat_interface_t *ptr;
 
@@ -498,6 +511,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 say 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->say_interface) {
 		const switch_say_interface_t *ptr;
 
@@ -519,6 +533,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 		}
 	}
 
+	/* 加载 management 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->management_interface) {
 		const switch_management_interface_t *ptr;
 
@@ -546,6 +561,7 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 			}
 		}
 	}
+	/* 加载 limit 下相关模块, 并产生响应的事件消息 */
 	if (new_module->module_interface->limit_interface) {
 		const switch_limit_interface_t *ptr;
 
@@ -1404,7 +1420,7 @@ static switch_status_t switch_loadable_module_unprocess(switch_loadable_module_t
 
 }
 
-
+/* 加载模块文件 */
 static switch_status_t switch_loadable_module_load_file(char *path, char *filename, switch_bool_t global, switch_loadable_module_t **new_module)
 {
 	switch_loadable_module_t *module = NULL;
@@ -1556,6 +1572,7 @@ SWITCH_DECLARE(switch_status_t) switch_loadable_module_load_module(char *dir, ch
 	return switch_loadable_module_load_module_ex(dir, fname, runtime, SWITCH_FALSE, err);
 }
 
+/* 加载模块并运行模块 */
 static switch_status_t switch_loadable_module_load_module_ex(char *dir, char *fname, switch_bool_t runtime, switch_bool_t global, const char **err)
 {
 	switch_size_t len = 0;
@@ -1604,6 +1621,7 @@ static switch_status_t switch_loadable_module_load_module_ex(char *dir, char *fn
 	} else if ((status = switch_loadable_module_load_file(path, file, global, &new_module)) == SWITCH_STATUS_SUCCESS) {
 		if ((status = switch_loadable_module_process(file, new_module)) == SWITCH_STATUS_SUCCESS && runtime) {
 			if (new_module->switch_module_runtime) {
+				/* 启动独立线程并运行该模块 */
 				new_module->thread = switch_core_launch_thread(switch_loadable_module_exec, new_module, new_module->pool);
 			}
 		} else if (status != SWITCH_STATUS_SUCCESS) {
@@ -1829,7 +1847,7 @@ static void switch_loadable_module_path_init()
 }
 #endif
 
-/* 模块的初始化 */
+/* 模块的初始化, 先后加载配置： modules.conf, post_load_modules.conf */
 SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autoload)
 {
 
@@ -1919,7 +1937,7 @@ SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autolo
 				if (path && zstr(path)) {
 					path = SWITCH_GLOBAL_dirs.mod_dir;
 				}
-				/* 模块加载 */
+				/* 模块加载并运行 */
 				if (switch_loadable_module_load_module_ex((char *) path, (char *) val, SWITCH_FALSE, global, &err) == SWITCH_STATUS_GENERR) {
 					if (critical && switch_true(critical)) {
 						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT, "Failed to load critical module '%s', abort()\n", val);
@@ -1935,7 +1953,7 @@ SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autolo
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CONSOLE, "open of %s failed\n", cf);
 	}
 
-	/* 打开XML配置⽂件 : conf/autoload_configs/post_load_modules.conf.xml */
+	/* 类似：打开XML配置⽂件 : conf/autoload_configs/post_load_modules.conf.xml */
 	if ((xml = switch_xml_open_cfg(pcf, &cfg, NULL))) {
 		switch_xml_t mods, ld;
 
@@ -2007,6 +2025,7 @@ SWITCH_DECLARE(switch_status_t) switch_loadable_module_init(switch_bool_t autolo
 	chat_globals.pool = loadable_modules.pool;
 	switch_mutex_init(&chat_globals.mutex, SWITCH_MUTEX_NESTED, chat_globals.pool);
 
+	/* TODO */
 	chat_thread_start(1);
 
 	return SWITCH_STATUS_SUCCESS;

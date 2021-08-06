@@ -204,6 +204,7 @@ SWITCH_STANDARD_SCHED_FUNC(heartbeat_callback)
 {
 	send_heartbeat();
 
+	/* 启动心跳定时任务，其中时间在 switch.conf 中设置 */
 	/* reschedule this task */
 	task->runtime = switch_epoch_time_now(NULL) + runtime.event_heartbeat_interval;
 }
@@ -213,6 +214,7 @@ SWITCH_STANDARD_SCHED_FUNC(check_ip_callback)
 {
 	check_ip();
 
+	/* 定时获取 ip 地址, 间隔60秒 */
 	/* reschedule this task */
 	task->runtime = switch_epoch_time_now(NULL) + 60;
 }
@@ -867,6 +869,7 @@ SWITCH_DECLARE(void) switch_core_set_globals(void)
 #endif
 	}
 
+	/* 设置配置文件 ： conf/freeswitch.xml */
 	if (!SWITCH_GLOBAL_filenames.conf_name && (SWITCH_GLOBAL_filenames.conf_name = (char *) malloc(BUFSIZE))) {
 		switch_snprintf(SWITCH_GLOBAL_filenames.conf_name, BUFSIZE, "%s", "freeswitch.xml");
 	}
@@ -1814,7 +1817,7 @@ SWITCH_DECLARE(int) switch_core_test_flag(int flag)
 	return switch_test_flag((&runtime), flag);
 }
 
-
+/* 初始化 */
 SWITCH_DECLARE(switch_status_t) switch_core_init(switch_core_flag_t flags, switch_bool_t console, const char **err)
 {
 	switch_uuid_t uuid;
@@ -1910,6 +1913,7 @@ SWITCH_DECLARE(switch_status_t) switch_core_init(switch_core_flag_t flags, switc
 	switch_mutex_init(&runtime.global_mutex, SWITCH_MUTEX_NESTED, runtime.memory_pool);
 
 	switch_thread_rwlock_create(&runtime.global_var_rwlock, runtime.memory_pool);
+	/* 设置全局变量 */
 	switch_core_set_globals();
 	switch_core_session_init(runtime.memory_pool);
 	switch_event_create_plain(&runtime.global_vars, SWITCH_EVENT_CHANNEL_DATA);
@@ -1926,8 +1930,10 @@ SWITCH_DECLARE(switch_status_t) switch_core_init(switch_core_flag_t flags, switc
 		runtime.console = stdout;
 	}
 
+	/* SSL 库加载 TLS */
 	SSL_library_init();
 	switch_ssl_init_ssl_locks();
+	/* CURL 全局配置初始化 */
 	switch_curl_init();
 
 	switch_core_set_variable("hostname", runtime.hostname);
@@ -1972,9 +1978,11 @@ SWITCH_DECLARE(switch_status_t) switch_core_init(switch_core_flag_t flags, switc
 	}
 
 	if (switch_test_flag((&runtime), SCF_USE_AUTO_NAT)) {
+		/* NAT初始化检测 pmp/upnp -nonat 禁用*/
 		switch_nat_init(runtime.memory_pool, switch_test_flag((&runtime), SCF_USE_NAT_MAPPING));
 	}
 
+	/* 日志组件初始化, 创建独立线程及阻塞队列, 获取消息并向log binding */
 	switch_log_init(runtime.memory_pool, runtime.colorize_console);
 			
 	runtime.tipping_point = 0;
@@ -1983,19 +1991,24 @@ SWITCH_DECLARE(switch_status_t) switch_core_init(switch_core_flag_t flags, switc
 
 	if (flags & SCF_MINIMAL) return SWITCH_STATUS_SUCCESS;
 
+	/* 加载核心配置文件 */
 	switch_load_core_config("switch.conf");
 
 	switch_core_state_machine_init(runtime.memory_pool);
 
+	/* 数据库初始化 */
 	if (switch_core_sqldb_start(runtime.memory_pool, switch_test_flag((&runtime), SCF_USE_SQL) ? SWITCH_TRUE : SWITCH_FALSE) != SWITCH_STATUS_SUCCESS) {
 		*err = "Error activating database";
 		return SWITCH_STATUS_FALSE;
 	}
+	/* 媒体组件初始化: 证书初始化 */
 	switch_core_media_init();
+	/* TODO */
 	switch_scheduler_task_thread_start();
-
+	/* TODO */
 	switch_nat_late_init();
 
+	/* zrtp设置、互斥锁初始化 */
 	switch_rtp_init(runtime.memory_pool);
 
 	runtime.running = 1;
@@ -2405,10 +2418,12 @@ SWITCH_DECLARE(switch_status_t) switch_core_init_and_modload(switch_core_flag_t 
 	runtime.events_use_dispatch = 1;
 
 	switch_core_set_signal_handlers();
+	/* 加载网络地址信息 CIDR : rfc6598.auto、rfc1918.auto、wan.auto等 */
 	switch_load_network_lists(SWITCH_FALSE);
 
 	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CONSOLE, "Bringing up environment.\n");
 	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CONSOLE, "Loading Modules.\n");
+	/* 模块加载初始化 : switch_loadable_module.c */
 	if (switch_loadable_module_init(SWITCH_TRUE) != SWITCH_STATUS_SUCCESS) {
 		*err = "Cannot load modules";
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CONSOLE, "Error: %s\n", *err);
@@ -2426,6 +2441,7 @@ SWITCH_DECLARE(switch_status_t) switch_core_init_and_modload(switch_core_flag_t 
 		switch_event_fire(&event);
 	}
 
+	/* 设置当前控制台大小 */
 	switch_core_screen_size(&x, NULL);
 
 	use = (x > 100) ? cc : cc_s;

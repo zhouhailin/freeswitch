@@ -1464,6 +1464,7 @@ static void zrtp_logger(int level, const char *data, int len, int offset)
 }
 #endif
 
+/* zrtp 初始化, 互斥锁设置 */
 SWITCH_DECLARE(void) switch_rtp_init(switch_memory_pool_t *pool)
 {
 #ifdef ENABLE_ZRTP
