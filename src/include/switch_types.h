@@ -543,7 +543,7 @@ typedef struct switch_directories switch_directories;
 SWITCH_DECLARE_DATA extern switch_directories SWITCH_GLOBAL_dirs;
 
 struct switch_filenames {
-	/* conf/freeswitch.xml */
+	/* freeswitch.xml */
     char *conf_name;
 };
 
