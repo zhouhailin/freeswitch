@@ -231,6 +231,7 @@ yum/temp
 html5/verto/verto_communicator/bower_components/
 html5/verto/verto_communicator/node_modules/
 .vs/
+.idea
 
 Freeswitch.2015.VC.db
 Freeswitch.2015.VC.VC.opendb
