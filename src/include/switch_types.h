@@ -1303,20 +1303,20 @@ CS_DESTROY      - Channel is ready to be destroyed and out of the state machine.
 </pre>
  */
 typedef enum {
-	CS_NEW,
-	CS_INIT,
-	CS_ROUTING,
-	CS_SOFT_EXECUTE,
-	CS_EXECUTE,
-	CS_EXCHANGE_MEDIA,
-	CS_PARK,
-	CS_CONSUME_MEDIA,
-	CS_HIBERNATE,
-	CS_RESET,
-	CS_HANGUP,
-	CS_REPORTING,
-	CS_DESTROY,
-	CS_NONE
+	CS_NEW,					// 新建
+	CS_INIT,				// 已初始化
+	CS_ROUTING,				// 路由
+	CS_SOFT_EXECUTE,		// 准备好执行，可由第三方控制
+	CS_EXECUTE,				// 执行 Dialplan 中的 App
+	CS_EXCHANGE_MEDIA,		// 与另一个 Channel 在交换媒体
+	CS_PARK,				// Park，等待进一步的命令指示
+	CS_CONSUME_MEDIA,		// 消费掉媒体并丢弃
+	CS_HIBERNATE,			// 没事可干，Sleep
+	CS_RESET,				// 重置
+	CS_HANGUP,				// 挂机，结束信令和媒体交互
+	CS_REPORTING,			// 收集呼叫信息(如写 CDR 等)
+	CS_DESTROY,				// 待销毁，退出状态机
+	CS_NONE					// 无效
 } switch_channel_state_t;
 
 typedef enum {
@@ -1771,6 +1771,7 @@ typedef enum {
 	SMBF_ANSWER_REQ = (1 << 6),
 	SMBF_BRIDGE_REQ = (1 << 7),
 	SMBF_THREAD_LOCK = (1 << 8),
+	// 移除bug的标志
 	SMBF_PRUNE = (1 << 9),
 	SMBF_NO_PAUSE = (1 << 10),
 	SMBF_STEREO_SWAP = (1 << 11),

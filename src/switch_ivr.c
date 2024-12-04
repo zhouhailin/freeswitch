@@ -33,6 +33,8 @@
  *
  * switch_ivr.c -- IVR Library
  *
+ * 媒体处理逻辑
+ *
  */
 
 #include <switch.h>

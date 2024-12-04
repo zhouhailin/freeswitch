@@ -779,12 +779,24 @@ SWITCH_DECLARE(switch_status_t) switch_core_media_bug_push_spy_frame(switch_medi
 	return SWITCH_STATUS_FALSE;
 }
 
+/**
+ * 通过添加一个"bug"来处理媒体
+ *
+ * session : 当前的session
+ * function: 该bug的名称
+ * target : 日志中打印
+ * callback : 回调函数
+ * user_data : 在回调函数中会获取
+ * stop_time : bug失效时间，值为绝对时间戳，0则表示没有限制时长
+ * flags : 控制标志位
+ * new_bug : 生成的bug实例返回指针地址
+ */
 #define MAX_BUG_BUFFER 1024 * 512
 SWITCH_DECLARE(switch_status_t) switch_core_media_bug_add(switch_core_session_t *session,
 														  const char *function,
 														  const char *target,
 														  switch_media_bug_callback_t callback,
-														  void *user_data, time_t stop_time, 
+														  void *user_data, time_t stop_time,
 														  switch_media_bug_flag_t flags, 
 														  switch_media_bug_t **new_bug)
 {
@@ -796,7 +808,9 @@ SWITCH_DECLARE(switch_status_t) switch_core_media_bug_add(switch_core_session_t 
 	const char *p;
 
 	if (!zstr(function)) {
+		// SMBF_ONE_ONLY检测
 		if ((flags & SMBF_ONE_ONLY)) {
+			// 如果设置了SMBF_ONE_ONLY的bug，只能添加一次；如果再次添加，则返回SWITCH_STATUS_GENERR
 			switch_thread_rwlock_wrlock(session->bug_rwlock);
 			for (bp = session->bugs; bp; bp = bp->next) {
 				if (!zstr(bp->function) && !strcasecmp(function, bp->function)) {
@@ -813,7 +827,7 @@ SWITCH_DECLARE(switch_status_t) switch_core_media_bug_add(switch_core_session_t 
 		return SWITCH_STATUS_GENERR;
 	}
 
-
+	// 媒体是否ready检测
 	if (!switch_channel_media_ready(session->channel)) {
 		if (switch_channel_pre_answer(session->channel) != SWITCH_STATUS_SUCCESS) {
 			return SWITCH_STATUS_FALSE;

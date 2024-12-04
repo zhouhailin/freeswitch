@@ -31,6 +31,8 @@
  *
  * switch_ivr_async.c -- IVR Library (async operations)
  *
+ * 媒体处理逻辑 - 异步处理
+ *
  */
 
 #include <switch.h>
@@ -641,13 +643,16 @@ SWITCH_DECLARE(switch_status_t) switch_ivr_dmachine_clear(switch_ivr_dmachine_t 
 }
 
 
-
+/**
+ * 将收到 的媒体(音频或视频)原样再发回去
+ */
 SWITCH_DECLARE(switch_status_t) switch_ivr_session_echo(switch_core_session_t *session, switch_input_args_t *args)
 {
 	switch_status_t status;
 	switch_frame_t *read_frame;
 	switch_channel_t *channel = switch_core_session_get_channel(session);
 
+	// 在电话应答之前建立媒 体连接(如果在 SIP 应用中将发送带 SDP 的 183 消息以尝试建立媒体连接)
 	if (switch_channel_pre_answer(channel) != SWITCH_STATUS_SUCCESS) {
 		return SWITCH_STATUS_FALSE;
 	}

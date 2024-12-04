@@ -193,18 +193,33 @@ struct switch_core_session {
 };
 
 struct switch_media_bug {
+	// 缓存buffer， 用于write
 	switch_buffer_t *raw_write_buffer;
+	// 缓存buffer，用于read
 	switch_buffer_t *raw_read_buffer;
+	// 在switch_core_session_read_frame函数中，处理SMBF_READ_REPLACE标识时使用
 	switch_frame_t *read_replace_frame_in;
+	// 在switch_core_session_read_frame函数中，处理SMBF_READ_REPLACE标识时使用
 	switch_frame_t *read_replace_frame_out;
+	// 在switch_core_session_write_frame函数中，处理SMBF_WRITE_REPLACE标识时使用
 	switch_frame_t *write_replace_frame_in;
+	// 在switch_core_session_write_frame函数中，处理SMBF_WRITE_REPLACE标识时使用
 	switch_frame_t *write_replace_frame_out;
+	// 在switch_core_session_read_frame函数中，处理SMBF_TAP_NATIVE_READ标识时使用，
+	// 它在回调执行前保存当前的frame，回调结束后置空
 	switch_frame_t *native_read_frame;
+	// 在switch_core_session_write_frame函数中，处理SMBF_TAP_NATIVE_WRITE标识时使用
+	// 它在回调执行前保存当前的frame，回调结束后置空
 	switch_frame_t *native_write_frame;
+	// bug回调时使用的callback
 	switch_media_bug_callback_t callback;
+	// read 锁
 	switch_mutex_t *read_mutex;
+	// write 锁
 	switch_mutex_t *write_mutex;
+	// 当前的session
 	switch_core_session_t *session;
+	// 用户数据，在callback中使用
 	void *user_data;
 	uint32_t flags;
 	uint8_t ready;
@@ -214,7 +229,9 @@ struct switch_media_bug {
 	switch_thread_id_t thread_id;
 	char *function;
 	char *target;
+	// read侧的codec的impl
 	switch_codec_implementation_t read_impl;
+	// write侧的codec的impl
 	switch_codec_implementation_t write_impl;
 	uint32_t record_frame_size;
 	uint32_t record_pre_buffer_count;

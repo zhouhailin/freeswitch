@@ -339,6 +339,7 @@ SWITCH_DECLARE(switch_status_t) switch_core_perform_file_open(const char *file, 
 	}
 
 	if (fh->samplerate && rate && fh->samplerate != rate) {
+		// File /usr/local/freeswitch/recordings/6001-cb604c04-c29e-4866-930e-f191851796ea.wav sample rate 8000 doesn't match requested rate 48000
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "File %s sample rate %d doesn't match requested rate %d\n", file_path, fh->samplerate, rate);
 		if ((flags & SWITCH_FILE_FLAG_READ)) {
 			fh->samplerate = rate;

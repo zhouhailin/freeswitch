@@ -210,6 +210,8 @@ static switch_status_t switch_loadable_module_process(char *key, switch_loadable
 				if (load_interface) {
 					for (impl = ptr->implementations; impl; impl = impl->next) {
 						if (impl->bits_per_second) {
+							// Adding Codec L16 100 RAW Signed Linear (16 bit) 8000hz 120ms 1ch 128000bps
+							// Adding Codec PCMU 0 G.711 ulaw 48000hz 10ms 2ch 768000bps
 							switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE,
 											  "Adding Codec %s %d %s %dhz %dms %dch %dbps\n",
 											  impl->iananame, impl->ianacode,

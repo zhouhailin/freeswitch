@@ -25,7 +25,9 @@
  * 
  * Anthony Minessale II <anthm@freeswitch.org>
  *
- * switch_ivr_bridge.c -- IVR Library 
+ * switch_ivr_bridge.c -- IVR Library
+ *
+ * 媒体处理逻辑 - 话路桥接
  *
  */
 
